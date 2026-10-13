@@ -9,5 +9,6 @@ async function run(blob){ const t0=performance.now(); document.getElementById('i
     log('OK en '+Math.round(performance.now()-t0)+' ms'); for(const it of r.items) log(it.q+' ('+it.en+') '+it.gr+' g, conf '+it.conf.toFixed(2)); log('DONE');
   }catch(e){ log('ERREUR '+e); } }
 document.getElementById('f').onchange=e=>run(e.target.files[0]);
-const u=new URLSearchParams(location.search).get('img'); if(u) fetch(u).then(r=>r.blob()).then(run).catch(e=>log('ERREUR image '+e));
+const q=new URLSearchParams(location.search), w=q.get('wiki'); let u=q.get('img');
+if(w){ const j=await (await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'+w)).json(); u=(j.thumbnail||j.originalimage).source; log('image : '+u); } if(u) fetch(u).then(r=>r.blob()).then(run).catch(e=>log('ERREUR image '+e));
 </script></body></html>
