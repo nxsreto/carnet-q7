@@ -54,6 +54,9 @@ export async function analyze(blob,onProgress){
   const agg=new Array(FOODS.length).fill(0), best=new Array(FOODS.length).fill(0);
   for(let c=0;c<crops.length;c++){ const p=await scores(crops[c]); for(let i=0;i<p.length;i++){ agg[i]+=p[i]*(c?1:2); best[i]=Math.max(best[i],p[i]); } }
   const ranked=FOODS.map((f,i)=>({i,s:agg[i]/6,b:best[i]})).sort((a,b)=>b.s-a.s);
-  const top=ranked.filter((r,k)=>k===0||(r.b>=0.25&&r.s>=0.06)).slice(0,4);
+  // une seule proposition par famille d'aliments (deux pour les légumes), et un plat complet reste seul
+  const G=i=>i<13?"feculent":i<22?"viande":i<26?"poisson":i<30?"oeuf":i<44?"legume":i<55?"plat":i<58?"laitier":i<64?"fruit":i<72?"sucre":"extra";
+  const cand=ranked.filter((r,k)=>k===0||(r.b>=0.25&&r.s>=0.06)), seen={}, top=[];
+  for(const r of cand){ const g=G(r.i); seen[g]=(seen[g]||0)+1; if(seen[g]>(g==="legume"?2:1)) continue; if(top.length&&G(top[0].i)==="plat"&&g!=="legume"&&g!=="extra") continue; top.push(r); if(top.length>=4) break; }
   return {items:top.map(r=>({en:FOODS[r.i][0],q:FOODS[r.i][1],gr:FOODS[r.i][2],conf:r.b})),alts:ranked.slice(0,10).map(r=>FOODS[r.i][1])};
 }
