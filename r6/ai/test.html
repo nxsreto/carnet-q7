@@ -1,0 +1,13 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>test robot</title>
+<style>body{font-family:system-ui;background:#070D1A;color:#EAF2FF;padding:16px}img{max-width:300px;display:block;margin:8px 0}pre{white-space:pre-wrap}</style></head><body>
+<p>Test du robot repas. <input type="file" id="f" accept="image/*"></p><img id="i"><pre id="o">…</pre>
+<script type="module">
+import {analyze} from './robot.js';
+const o=document.getElementById('o'), log=t=>{o.textContent+='\n'+t; document.title=t.slice(0,60)};
+async function run(blob){ const t0=performance.now(); document.getElementById('i').src=URL.createObjectURL(blob);
+  try{ const r=await analyze(blob,(f,p)=>{o.textContent='Téléchargement '+f+' '+Math.round(p)+'%'});
+    log('OK en '+Math.round(performance.now()-t0)+' ms'); for(const it of r.items) log(it.q+' ('+it.en+') '+it.gr+' g, conf '+it.conf.toFixed(2)); log('DONE');
+  }catch(e){ log('ERREUR '+e); } }
+document.getElementById('f').onchange=e=>run(e.target.files[0]);
+const u=new URLSearchParams(location.search).get('img'); if(u) fetch(u).then(r=>r.blob()).then(run).catch(e=>log('ERREUR image '+e));
+</script></body></html>
