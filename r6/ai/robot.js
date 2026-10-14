@@ -16,7 +16,7 @@ export const FOODS=[
 ["cheese","Emmental",30],["yogurt","Yaourt ou lait fermenté, nature",125],["milk","Lait demi-écrémé",250],
 ["banana","Banane, chair sans peau, crue",120],["apple","Pomme, chair et peau, crue",150],["orange","Orange, pulpe, crue",150],["strawberries","Fraise, crue",150],["grapes","Raisin blanc, cru",120],["mixed fruit salad","Salade de fruits",150],
 ["breakfast cereal","Céréales pour petit-déjeuner",50],["oatmeal porridge","Flocons d'avoine, cuits à l'eau",250],["pancakes","Crêpe, nature, préemballée, rayon frais",80],["croissant","Croissant au beurre",60],
-["chocolate","Chocolat noir 50 % de cacao environ, tablette",20],["cake","Gâteau au chocolat",80],["cookies","Biscuit sec",30],["ice cream","Crème glacée",100],
+["chocolate","Chocolat noir 50 % de cacao environ, tablette",20],["cake","Gâteau au chocolat",80],["chocolate chip cookie","Cookie au chocolat, préemballé",80],["ice cream","Crème glacée",100],
 ["nuts","Amande, avec peau, sans sel ajouté",30],["olive oil","Huile d'olive vierge extra",10],["mayonnaise sauce","Mayonnaise",20],["ketchup","Ketchup",20],["butter","Beurre à 80% MG minimum, doux",10]
 ];
 let M=null, EMB=null;
@@ -32,12 +32,12 @@ export async function load(onProgress){
 }
 async function textEmb(){
   if(EMB) return EMB;
-  try{ const c=JSON.parse(localStorage.getItem('r6_clip_txt')||'null'); if(c&&c.n===FOODS.length&&c.v===1){ EMB=c.e; return EMB; } }catch(e){}
+  try{ const c=JSON.parse(localStorage.getItem('r6_clip_txt')||'null'); if(c&&c.n===FOODS.length&&c.v===2){ EMB=c.e; return EMB; } }catch(e){}
   const {tok,txt}=M, prompts=FOODS.map(f=>'a photo of '+f[0]+', a type of food.');
   const out=await txt(tok(prompts,{padding:true,truncation:true}));
   const d=out.text_embeds.data, k=d.length/FOODS.length; EMB=[];
   for(let i=0;i<FOODS.length;i++) EMB.push(norm(Array.from(d.slice(i*k,(i+1)*k))).map(x=>+x.toFixed(5)));
-  try{ localStorage.setItem('r6_clip_txt',JSON.stringify({v:1,n:FOODS.length,e:EMB})); }catch(e){}
+  try{ localStorage.setItem('r6_clip_txt',JSON.stringify({v:2,n:FOODS.length,e:EMB})); }catch(e){}
   return EMB;
 }
 async function scores(raw){
