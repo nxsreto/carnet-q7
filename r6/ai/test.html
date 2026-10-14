@@ -2,10 +2,12 @@
 <style>body{font-family:system-ui;background:#070D1A;color:#EAF2FF;padding:16px}img{max-width:300px;display:block;margin:8px 0}pre{white-space:pre-wrap}</style></head><body>
 <p>Test du robot repas. <input type="file" id="f" accept="image/*"></p><img id="i"><pre id="o">…</pre>
 <script type="module">
-import {analyze} from './robot.js';
+import {analyze,barcode} from './robot.js';
 const o=document.getElementById('o'), log=t=>{o.textContent+='\n'+t; document.title=t.slice(0,60)};
 async function run(blob){ const t0=performance.now(); document.getElementById('i').src=URL.createObjectURL(blob);
   try{ const r=await analyze(blob,(f,p)=>{o.textContent='Téléchargement '+f+' '+Math.round(p)+'%'});
+    let b=null; try{ b=await barcode(blob); }catch(e){ b='ERR '+e; } log('CODE '+b);
+    log('PACK '+(r.packaged||0).toFixed(2)+' BRANDS '+(r.brands||[]).map(x=>x.q+' '+x.s.toFixed(2)).join(' | '));
     log('OK en '+Math.round(performance.now()-t0)+' ms'); for(const it of r.items) log(it.q+' ('+it.en+') '+it.gr+' g, conf '+it.conf.toFixed(2)); log('DONE');
   }catch(e){ log('ERREUR '+e); } }
 document.getElementById('f').onchange=e=>run(e.target.files[0]);
