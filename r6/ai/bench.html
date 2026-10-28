@@ -1,0 +1,19 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>bench</title></head><body style="font-family:system-ui;background:#070D1A;color:#EAF2FF;padding:16px"><pre id="o">…</pre>
+<script type="module">
+const P=new URLSearchParams(location.search), mod=P.get('m')||'robot2.js', model=P.get('model'), per=+(P.get('per')||3);
+const ACC={pizza:/^Pizza/,hamburger:/Hamburger|steak haché|Pain pour burger/i,french_fries:/Frites|Potatoes/,omelette:/Omelette/,steak:/entrecôte|steak|Boeuf/i,lasagna:/Lasagne/,spaghetti_bolognese:/bolognaise/,spaghetti_carbonara:/carbonara|Pâtes/,sushi:/Sushi/,chicken_wings:/Poulet|aile/i,caesar_salad:/César|Salade/,fried_rice:/cantonais/,ice_cream:/Glace|glacée/,chocolate_cake:/Gâteau au chocolat|Brownie/,donuts:/donut/,waffles:/Gaufre/,pancakes:/Pancake|Crêpe/,hot_dog:/Hot-dog/,chicken_curry:/curry/i,paella:/Paëlla/,risotto:/Risotto/,ravioli:/farcies|Ravioli/,gnocchi:/Gnocchi/,falafel:/Falafel/,samosa:/Samoussa|Samossa/,grilled_salmon:/Saumon/,fish_and_chips:/Poisson pané|Frites/,mussels:/Moule/,croque_madame:/Croque/,tiramisu:/Tiramisu/,chocolate_mousse:/Mousse au chocolat/,club_sandwich:/Sandwich|Pain de mie/,ramen:/Nouilles/,pad_thai:/Nouilles/,macaroni_and_cheese:/Pâtes|Gratin/,french_onion_soup:/Soupe/,cup_cakes:/Muffin|Gâteau/,breakfast_burrito:/Wrap|Tortilla/,greek_salad:/Salade|Tomate|Concombre/,beet_salad:/Betterave|Salade/,churros:/donut|Beignet/,garlic_bread:/Pain/,deviled_eggs:/Oeuf/,eggs_benedict:/Oeuf/};
+const o=document.getElementById('o'), log=t=>{o.textContent+='\n'+t;};
+const R=await import('./'+mod); if(model&&R.setModel) R.setModel(model);
+const names=(await (await fetch('https://datasets-server.huggingface.co/info?dataset=ethz/food101')).json()).dataset_info.default.features.label.names;
+const pick={}; 
+for(let off=0; off<3000 && Object.keys(ACC).some(k=>(pick[k]||[]).length<per); off+=100){
+  const j=await (await fetch('https://datasets-server.huggingface.co/rows?dataset=ethz/food101&config=default&split=validation&offset='+off+'&length=100')).json();
+  for(const x of j.rows){ const n=names[x.row.label]; if(ACC[n]&&(pick[n]=pick[n]||[]).length<per) pick[n].push(x.row.image.src); } }
+const res=[]; let t1=0,any=0,N=0; const t0=performance.now();
+for(const [lab,urls] of Object.entries(pick)) for(const u of urls){
+  try{ const b=await (await fetch(u)).blob(); const r=await R.analyze(b); const qs=r.items.map(i=>i.q);
+    const h1=ACC[lab].test(qs[0]||''), ha=qs.some(q=>ACC[lab].test(q)); N++; t1+=h1; any+=ha; res.push([lab,h1?1:0,ha?1:0,qs.slice(0,3).join(' / ')]);
+    document.title=N+' '+t1+' '+any; }catch(e){ res.push([lab,'ERR',String(e)]); } }
+window.__res={mod,model,N,top1:t1,any,ms:Math.round((performance.now()-t0)/Math.max(N,1)),res};
+log(JSON.stringify({N,top1:t1,any})); log('DONE');
+</script></body></html>
