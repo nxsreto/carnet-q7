@@ -420,15 +420,21 @@ export async function analyze(blob,onProgress,opt={}){
   const W=full.width, H=full.height, crops=[full];
   crops.push(await full.crop([Math.round(W*.2),Math.round(H*.2),Math.round(W*.8)-1,Math.round(H*.8)-1]));
   if(!opt.fast) for(const [x,y] of [[0,0],[1,0],[0,1],[1,1]]) crops.push(await full.crop([Math.round(x*W*.4),Math.round(y*H*.4),Math.round(x*W*.4+W*.6)-1,Math.round(y*H*.4+H*.6)-1]));
-  const n=FOODS.length, agg=new Array(n).fill(0), best=new Array(n).fill(0), V=[];
+  const n=FOODS.length, agg=new Array(n).fill(0), best=new Array(n).fill(0), V=[], peaks=[];
   for(let c=0;c<crops.length;c++){ const v=await vec(crops[c]); V.push(v); const p=soft(EMB,v); const w=c===0?2:c===1?1.5:1;
-    for(let i=0;i<n;i++){ agg[i]+=p[i]*w; best[i]=Math.max(best[i],p[i]); } }
+    let am=0; for(let i=0;i<n;i++){ agg[i]+=p[i]*w; best[i]=Math.max(best[i],p[i]); if(p[i]>p[am]) am=i; }
+    if(c>=2) peaks.push({i:am,p:p[am]}); }
   const v0=V[0], tw=2+1.5+(crops.length-2);
   const ranked=FOODS.map((f,i)=>({i,s:agg[i]/tw,b:best[i]})).sort((a,b)=>b.s-a.s);
-  const G=i=>FOODS[i][3], thB=opt.thB??0.22, thS=opt.thS??0.04;
-  const cand=ranked.filter((r,k)=>k===0||(r.b>=thB&&r.s>=thS)), seen={}, seenQ={}, top=[];
-  for(const r of cand){ const g=G(r.i), q=FOODS[r.i][1]; if(seenQ[q]) continue; seen[g]=(seen[g]||0)+1; if(seen[g]>(g==="legume"?2:1)) continue;
-    if(top.length&&G(top[0].i)==="plat"&&!["legume","extra","boisson","pain"].includes(g)) continue; seenQ[q]=1; top.push(r); if(top.length>=5) break; }
+  const G=i=>FOODS[i][3], thB=opt.thB??0.22, thS=opt.thS??0.04, thP=opt.thP??0.3;
+  // 1) le plus probable sur toute la photo, 2) ce que chaque zone voit nettement, 3) le reste au-dessus des seuils
+  const byI=i=>ranked.find(r=>r.i===i);
+  const cand=[ranked[0], ...peaks.filter(x=>x.p>=thP).sort((a,b)=>b.p-a.p).map(x=>Object.assign({},byI(x.i),{peak:x.p})), ...ranked.slice(1).filter(r=>r.b>=thB&&r.s>=thS)];
+  const seen={}, seenQ={}, top=[];
+  for(const r of cand){ const g=G(r.i), q=FOODS[r.i][1]; if(seenQ[q]) continue;
+    if((seen[g]||0)>=(g==="legume"?2:1)) continue;
+    if(top.length&&G(top[0].i)==="plat"&&!["legume","extra","boisson","pain"].includes(g)&&!(r.peak>=0.5)) continue;
+    seen[g]=(seen[g]||0)+1; seenQ[q]=1; top.push(r); if(top.length>=5) break; }
   let items=top.map(r=>({en:FOODS[r.i][0],q:FOODS[r.i][1],gr:FOODS[r.i][2],conf:r.b}));
   // ce que tu as déjà corrigé sur une photo très proche passe en premier
   const mem=memory().map(x=>({x,s:cos(x.e,v0)})).filter(o=>o.s>0.9).sort((a,b)=>b.s-a.s);
