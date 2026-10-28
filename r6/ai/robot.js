@@ -191,7 +191,6 @@ export const FOODS=[
 // extras
 ["nuts","Amande, avec peau, sans sel ajouté",30,"extra"],
 ["peanuts","Cacahuète, grillée, salée",30,"extra"],
-["olive oil","Huile d'olive vierge extra",10,"extra"],
 ["mayonnaise","Mayonnaise (70% MG min.), préemballée",20,"extra"],
 ["ketchup","Ketchup, préemballé",20,"extra"],
 ["mustard","Moutarde",10,"extra"],
@@ -201,8 +200,7 @@ export const FOODS=[
 ["tomato sauce","Sauce tomate aux oignons, préemballée",80,"extra"],
 // boissons
 ["glass of cola soda","Cola, sucré",330,"boisson"],
-["orange juice","Jus d'orange, pur jus",200,"boisson"],
-["coffee","Café, poudre soluble",2,"boisson"]
+["orange juice","Jus d'orange, pur jus",200,"boisson"]
 ];
 
 export const BRANDS=[
