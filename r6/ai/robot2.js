@@ -411,8 +411,9 @@ async function vec(raw){ const {proc,vis}=M, out=await vis(await proc(raw)); ret
 // Mémoire des corrections : le robot retient ce que tu as corrigé, sur ton téléphone
 const LK='r6_learn';
 function memory(){ try{ const m=JSON.parse(localStorage.getItem(LK)||'[]'); return m.filter(x=>x.m===MODEL); }catch(e){ return []; } }
-export function learn(v,q,gr){ if(!v||!q) return; try{ const m=JSON.parse(localStorage.getItem(LK)||'[]').filter(x=>!(x.m===MODEL&&cos(x.e,v)>0.97&&x.q===q));
-  m.push({m:MODEL,e:v.map(x=>+x.toFixed(4)),q,gr:gr||null}); localStorage.setItem(LK,JSON.stringify(m.slice(-150))); }catch(e){} }
+export function learn(v,list){ if(!v||!list||!list.length) return; try{ const m=JSON.parse(localStorage.getItem(LK)||'[]').filter(x=>!(x.m===MODEL&&cos(x.e,v)>0.97));
+  m.push({m:MODEL,e:v.map(x=>+x.toFixed(4)),l:list.slice(0,6).map(x=>({q:x.q,gr:x.gr}))}); localStorage.setItem(LK,JSON.stringify(m.slice(-150))); }catch(e){} }
+export function forget(){ try{ localStorage.removeItem(LK); }catch(e){} }
 // Analyse : image entière, centre et 4 quarts qui se chevauchent, pour repérer plusieurs aliments
 export async function analyze(blob,onProgress,opt={}){
   await load(onProgress); await textEmb();
@@ -420,8 +421,8 @@ export async function analyze(blob,onProgress,opt={}){
   const W=full.width, H=full.height, crops=[full];
   crops.push(await full.crop([Math.round(W*.2),Math.round(H*.2),Math.round(W*.8)-1,Math.round(H*.8)-1]));
   if(!opt.fast) for(const [x,y] of [[0,0],[1,0],[0,1],[1,1]]) crops.push(await full.crop([Math.round(x*W*.4),Math.round(y*H*.4),Math.round(x*W*.4+W*.6)-1,Math.round(y*H*.4+H*.6)-1]));
-  const n=FOODS.length, agg=new Array(n).fill(0), best=new Array(n).fill(0), V=[], peaks=[];
-  for(let c=0;c<crops.length;c++){ const v=await vec(crops[c]); V.push(v); const p=soft(EMB,v); const w=c===0?2:c===1?1.5:1;
+  const n=FOODS.length, agg=new Array(n).fill(0), best=new Array(n).fill(0), V=[], peaks=[], PP=[];
+  for(let c=0;c<crops.length;c++){ const v=await vec(crops[c]); V.push(v); const p=soft(EMB,v); if(opt.debug) PP.push(p); const w=c===0?2:c===1?1.5:1;
     let am=0; for(let i=0;i<n;i++){ agg[i]+=p[i]*w; best[i]=Math.max(best[i],p[i]); if(p[i]>p[am]) am=i; }
     if(c>=2) peaks.push({i:am,p:p[am]}); }
   const v0=V[0], tw=2+1.5+(crops.length-2);
@@ -436,12 +437,12 @@ export async function analyze(blob,onProgress,opt={}){
     if(top.length&&G(top[0].i)==="plat"&&!["legume","extra","boisson","pain"].includes(g)&&!(r.peak>=0.5)) continue;
     seen[g]=(seen[g]||0)+1; seenQ[q]=1; top.push(r); if(top.length>=5) break; }
   let items=top.map(r=>({en:FOODS[r.i][0],q:FOODS[r.i][1],gr:FOODS[r.i][2],conf:r.b}));
-  // ce que tu as déjà corrigé sur une photo très proche passe en premier
-  const mem=memory().map(x=>({x,s:cos(x.e,v0)})).filter(o=>o.s>0.9).sort((a,b)=>b.s-a.s);
-  if(mem.length){ const k=mem[0].x; items=[{en:'(souvenir)',q:k.q,gr:k.gr||items[0]?.gr||100,conf:mem[0].s,learned:true},...items.filter(it=>it.q!==k.q)].slice(0,5); }
+  // un repas que tu as déjà corrigé et enregistré, sur une photo très proche, revient tel quel
+  let learned=false; const mem=memory().map(x=>({x,s:cos(x.e,v0)})).filter(o=>o.s>(opt.thM??0.92)).sort((a,b)=>b.s-a.s);
+  if(mem.length&&mem[0].x.l){ learned=true; items=mem[0].x.l.map(k=>({en:'(souvenir)',q:k.q,gr:k.gr||100,conf:mem[0].s,learned:true})); }
   const pk=soft(PEMB,v0), packaged=pk.slice(0,PACK.length).reduce((a,b)=>a+b,0);
   const bs=soft(BEMB,v0), brands=bs.map((x,i)=>({q:BRANDS[i][1],s:x})).sort((a,b)=>b.s-a.s).slice(0,4);
-  return {packaged,brands,items,alts:ranked.slice(0,12).map(r=>FOODS[r.i][1]),vec:v0.map(x=>+x.toFixed(4))};
+  if(opt.debug) return {PP,items}; return {learned,packaged,brands,items,alts:ranked.slice(0,12).map(r=>FOODS[r.i][1]),vec:v0.map(x=>+x.toFixed(4))};
 }
 // Code-barres (EAN) : lecture sur le téléphone avec zxing, sans réseau
 let ZX=null;
