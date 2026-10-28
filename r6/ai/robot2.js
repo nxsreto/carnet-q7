@@ -97,11 +97,16 @@ export const FOODS=[
 ["mixed frozen vegetables stir fry","Poêlée de légumes assaisonnés grillée, méridionale ou méditerranéenne, surgelée, crue",200,"legume"],
 ["ratatouille","Ratatouille cuisinée, préemballée",200,"legume"],
 ["vegetable soup","Soupe aux légumes variés, préemballée à réchauffer",300,"legume"],
+["onion soup with melted cheese","Soupe à l'oignon, préemballée à réchauffer",300,"plat"],
+["bowl of soup","Soupe (aliment moyen)",300,"plat"],
 ["beetroot","Betterave rouge, cuite",80,"legume"],
 // plats
 ["pizza","Pizza (aliment moyen)",300,"plat"],
 ["cheese pizza","Pizza au fromage ou pizza margherita, préemballée",300,"plat"],
 ["burger sandwich","Hamburger, de restauration rapide",220,"plat"],
+["club sandwich","Sandwich pain de mie complet, jambon, préemballé",200,"plat"],
+["macaroni and cheese","Gratin de pâtes au jambon, préemballé",300,"plat"],
+["garlic bread","Pain blanc (par ex. : baguette, boule…)",80,"pain"],
 ["ham sandwich baguette","Sandwich baguette, jambon beurre, fait maison",200,"plat"],
 ["chicken wrap","Wrap poulet crudités",220,"plat"],
 ["french tacos","Wrap poulet crudités",350,"plat"],
@@ -137,7 +142,7 @@ export const FOODS=[
 ["camembert","Camembert au lait pasteurisé",30,"laitier"],
 ["goat cheese","Fromage de chèvre bûche",30,"laitier"],
 ["yogurt","Yaourt ou lait fermenté, nature",125,"laitier"],
-["greek yogurt","Yaourt à la grecque nature",150,"laitier"],
+["a bowl of plain thick white yogurt","Yaourt à la grecque nature",150,"laitier"],
 ["cottage cheese fromage blanc","Fromage blanc, nature, 2-3% MG",150,"laitier"],
 ["glass of milk","Lait demi-écrémé (aliment moyen)",250,"laitier"],
 // fruits
@@ -171,8 +176,8 @@ export const FOODS=[
 ["muffin","Muffin, au chocolat, préemballé",80,"sucre"],
 ["donut","Beignet ou donut fourré ou nappé goût chocolat ou chocolat noisette, préemballé",70,"sucre"],
 ["chocolate chip cookie","Cookie au chocolat, préemballé",80,"sucre"],
-["chocolate covered butter biscuits","Biscuit sec petit beurre au chocolat (tablette ou pépites)",50,"sucre"],
-["chocolate sandwich biscuits","Biscuit sec petit beurre au chocolat (tablette ou pépites)",50,"sucre"],
+["butter biscuits topped with a chocolate bar","Biscuit sec petit beurre au chocolat (tablette ou pépites)",50,"sucre"],
+["churros","Beignet ou donut rond moelleux, sans fourrage, saupoudré de sucre",80,"sucre"],
 ["madeleine cakes","Madeleine ordinaire, préemballée",50,"sucre"],
 ["waffle","Gaufre bruxelloise ou liégeoise nature, artisanale",80,"sucre"],
 ["ice cream","Glace ou crème glacée, bac ou pot (aliment moyen)",100,"sucre"],
@@ -414,11 +419,11 @@ export async function analyze(blob,onProgress,opt={}){
   const {T}=M, url=URL.createObjectURL(blob), full=await T.RawImage.fromURL(url); URL.revokeObjectURL(url);
   const W=full.width, H=full.height, crops=[full];
   crops.push(await full.crop([Math.round(W*.2),Math.round(H*.2),Math.round(W*.8)-1,Math.round(H*.8)-1]));
-  for(const [x,y] of [[0,0],[1,0],[0,1],[1,1]]) crops.push(await full.crop([Math.round(x*W*.4),Math.round(y*H*.4),Math.round(x*W*.4+W*.6)-1,Math.round(y*H*.4+H*.6)-1]));
+  if(!opt.fast) for(const [x,y] of [[0,0],[1,0],[0,1],[1,1]]) crops.push(await full.crop([Math.round(x*W*.4),Math.round(y*H*.4),Math.round(x*W*.4+W*.6)-1,Math.round(y*H*.4+H*.6)-1]));
   const n=FOODS.length, agg=new Array(n).fill(0), best=new Array(n).fill(0), V=[];
   for(let c=0;c<crops.length;c++){ const v=await vec(crops[c]); V.push(v); const p=soft(EMB,v); const w=c===0?2:c===1?1.5:1;
     for(let i=0;i<n;i++){ agg[i]+=p[i]*w; best[i]=Math.max(best[i],p[i]); } }
-  const v0=V[0], tw=2+1.5+4;
+  const v0=V[0], tw=2+1.5+(crops.length-2);
   const ranked=FOODS.map((f,i)=>({i,s:agg[i]/tw,b:best[i]})).sort((a,b)=>b.s-a.s);
   const G=i=>FOODS[i][3], thB=opt.thB??0.22, thS=opt.thS??0.04;
   const cand=ranked.filter((r,k)=>k===0||(r.b>=thB&&r.s>=thS)), seen={}, seenQ={}, top=[];
